@@ -292,10 +292,50 @@ async function renderGame() {
         ]));
     }
 
+    // Long-form markdown content (對返 content/<id>.md, writer agent 寫嘅 long-form)
+    const longFormHtml = await renderLongForm(game.id);
+    if (longFormHtml) {
+        const longFormDiv = el('div', { class: 'long-form' });
+        longFormDiv.innerHTML = longFormHtml;
+        // Style: Markdown <h1> 隱藏 (因為 page 已經有 H1), 其他 heading 加 spacing
+        longFormDiv.querySelectorAll('h1').forEach(h => h.style.display = 'none');
+        longFormDiv.querySelectorAll('h2').forEach(h => h.classList.add('md-h2'));
+        longFormDiv.querySelectorAll('h3').forEach(h => h.classList.add('md-h3'));
+        longFormDiv.querySelectorAll('blockquote').forEach(b => b.classList.add('md-blockquote'));
+        longFormDiv.querySelectorAll('ul, ol').forEach(l => l.classList.add('md-list'));
+        // 將 long-form 插入喺 game-meta 之後, 結構性 block 之前
+        const gameMetaEl = content.querySelector('.game-meta');
+        if (gameMetaEl) {
+            gameMetaEl.insertAdjacentElement('afterend', longFormDiv);
+        } else {
+            content.appendChild(longFormDiv);
+        }
+    }
+
     // Back link
     content.appendChild(el('p', { style: 'margin-top: 40px' }, [
         el('a', { href: 'index.html', class: 'back' }, ['← 返回桌遊列表']),
     ]));
+}
+
+// === Render long-form markdown content (從 content/<id>.md fetch) ===
+async function renderLongForm(gameId) {
+    try {
+        const r = await fetch(`content/${gameId}.md`);
+        if (!r.ok) {
+            console.warn(`No long-form content for ${gameId} (HTTP ${r.status})`);
+            return null;
+        }
+        const md = await r.text();
+        if (typeof marked === 'undefined') {
+            console.warn('marked.js 未載入, 返 raw markdown');
+            return `<pre>${md.replace(/</g, '&lt;')}</pre>`;
+        }
+        return marked.parse(md);
+    } catch (e) {
+        console.error(`renderLongForm error for ${gameId}:`, e);
+        return null;
+    }
 }
 
 // === Generate query matches based on game attributes ===
