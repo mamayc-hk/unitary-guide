@@ -9,18 +9,13 @@ const SITE = {
 
 let SITE_DATA = null;
 
-// === Load site data (inline 優先, fetch fallback) ===
+// === Load site data (window.SITE_DATA 優先, fetch fallback) ===
 function loadSiteData() {
     if (SITE_DATA) return Promise.resolve(SITE_DATA);
-    // 1) Try inline <script id="site-data" type="application/json">
-    const inline = document.getElementById('site-data');
-    if (inline) {
-        try {
-            SITE_DATA = JSON.parse(inline.textContent);
-            return Promise.resolve(SITE_DATA);
-        } catch (e) {
-            console.error('inline site data parse error:', e);
-        }
+    // 1) Try window.SITE_DATA (set by inline base64 script)
+    if (window.SITE_DATA) {
+        SITE_DATA = window.SITE_DATA;
+        return Promise.resolve(SITE_DATA);
     }
     // 2) Fallback: fetch (for local dev)
     return fetch(SITE.dataUrl)
