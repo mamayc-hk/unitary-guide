@@ -9,18 +9,27 @@ const SITE = {
 
 let SITE_DATA = null;
 
-// === Fetch site data ===
-async function loadSiteData() {
-    if (SITE_DATA) return SITE_DATA;
-    try {
-        const r = await fetch(SITE.dataUrl);
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
-        SITE_DATA = await r.json();
-        return SITE_DATA;
-    } catch (e) {
-        console.error('loadSiteData failed:', e);
-        return null;
+// === Load site data (inline 優先, fetch fallback) ===
+function loadSiteData() {
+    if (SITE_DATA) return Promise.resolve(SITE_DATA);
+    // 1) Try inline <script id="site-data" type="application/json">
+    const inline = document.getElementById('site-data');
+    if (inline) {
+        try {
+            SITE_DATA = JSON.parse(inline.textContent);
+            return Promise.resolve(SITE_DATA);
+        } catch (e) {
+            console.error('inline site data parse error:', e);
+        }
     }
+    // 2) Fallback: fetch (for local dev)
+    return fetch(SITE.dataUrl)
+        .then(r => r.ok ? r.json() : Promise.reject(new Error('HTTP ' + r.status)))
+        .then(data => { SITE_DATA = data; return data; })
+        .catch(e => {
+            console.error('loadSiteData fetch failed:', e);
+            return null;
+        });
 }
 
 // === Helpers ===
